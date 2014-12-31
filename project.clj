@@ -1,4 +1,4 @@
-(defproject com.github.tranchis/javaff "1.0.0"
+(defproject com.github.tranchis/javaff "2.1.5"
   :description "An implementation of FF Planner in Java."
   :url "http://github.com/tranchis/javaff"
   :license {:name "GNU GPL v3"
