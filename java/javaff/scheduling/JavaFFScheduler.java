@@ -33,7 +33,8 @@ import javaff.data.PartialOrderPlan;
 import javaff.data.TimeStampedPlan;
 import javaff.data.GroundProblem;
 import javaff.data.Action;
-import javaff.data.Metric;
+import javaff.data.metric.Metric;
+import javaff.data.metric.MetricType;
 import javaff.data.metric.BinaryComparator;
 import javaff.data.metric.ResourceOperator;
 import javaff.data.metric.NumberFunction;
@@ -50,16 +51,23 @@ import java.util.Map;
 import java.util.Hashtable;
 import java.math.BigDecimal;
 
+
+/**
+ * 
+ * @Deprecated This is more broken than deprecated.
+ * @see STRIPSScheduler A working STRIPS-only scheduler
+ *
+ */
 public class JavaFFScheduler implements Scheduler
 {
 	protected GroundProblem problem;
-	
+
 	public JavaFFScheduler(GroundProblem p)
-    {
+	{
 		problem = p;
 	}
 
-	public TimeStampedPlan schedule(TotalOrderPlan top)
+	public TimeStampedPlan schedule(TotalOrderPlan top) throws SchedulingException
 	{
 		PartialOrderPlan pop = GreedyPartialOrderLifter.lift(top, problem);
 
@@ -67,9 +75,9 @@ public class JavaFFScheduler implements Scheduler
 
 		stn.addConstraints(pop.getTemporalConstraints());
 
-
-		//Sort out the Durations
-		Map states = new Hashtable(); //Maps (Actions => states (which the actions are applied in))
+		// Sort out the Durations
+		Map states = new Hashtable(); // Maps (Actions => states (which the
+										// actions are applied in))
 		Iterator ait = top.getActions().iterator();
 		TemporalMetricState state = problem.getTemporalMetricInitialState();
 		while (ait.hasNext())
@@ -78,65 +86,73 @@ public class JavaFFScheduler implements Scheduler
 			if (a instanceof StartInstantAction)
 			{
 				StartInstantAction sia = (StartInstantAction) a;
-				List l = TemporalConstraint.getBounds(sia, sia.getSibling(), sia.parent.getMaxDuration(state), sia.parent.getMinDuration(state));
+				List l = TemporalConstraint.getBounds(sia, sia.getSibling(),
+						sia.parent.getMaxDuration(state), sia.parent
+								.getMinDuration(state));
 				stn.addConstraints(new HashSet(l));
 			}
 			states.put(a, state);
 			state = (TemporalMetricState) state.apply(a);
 		}
 
-		
-		
 		stn.consistent();
 
 		// sort out the resources
-		Map graphs = new Hashtable(); //Maps (NamedResources => PrecedenceGraphs)
+		Map graphs = new Hashtable(); // Maps (NamedResources =>
+										// PrecedenceGraphs)
 		ait = top.getActions().iterator();
 		while (ait.hasNext())
 		{
 			Action a = (Action) ait.next();
-			
+
 			Iterator bcit = a.getComparators().iterator();
 			while (bcit.hasNext())
 			{
-				//WARNING WARNING WARNING - assumes comparators are of the form (NamedFunction </>/<=/>= StaticFunction)
-                           BinaryComparator bc = (BinaryComparator) bcit.next(); 
+				// WARNING WARNING WARNING - assumes comparators are of the form
+				// (NamedFunction </>/<=/>= StaticFunction)
+				BinaryComparator bc = (BinaryComparator) bcit.next();
 				NamedFunction res = (NamedFunction) bc.first;
-				PrecedenceResourceGraph prg = (PrecedenceResourceGraph) graphs.get(res);
+				PrecedenceResourceGraph prg = (PrecedenceResourceGraph) graphs
+						.get(res);
 				if (prg == null)
 				{
 					prg = new PrecedenceResourceGraph(stn);
-					graphs.put(res,prg);
+					graphs.put(res, prg);
 				}
 				state = (TemporalMetricState) states.get(a);
 				BigDecimal d = bc.second.getValue(state);
-				prg.addCondition(new BinaryComparator( bc.type, res, new NumberFunction(d)), a);
+				prg.addCondition(new BinaryComparator(bc.type, res,
+						new NumberFunction(d)), a);
 			}
 
 			Iterator roit = a.getOperators().iterator();
 			while (roit.hasNext())
 			{
 				ResourceOperator ro = (ResourceOperator) roit.next();
-				NamedFunction res = (NamedFunction) ro.resource;
-				PrecedenceResourceGraph prg = (PrecedenceResourceGraph) graphs.get(res);
+				NamedFunction res = ro.resource;
+				PrecedenceResourceGraph prg = (PrecedenceResourceGraph) graphs
+						.get(res);
 				if (prg == null)
 				{
 					prg = new PrecedenceResourceGraph(stn);
-					graphs.put(res,prg);
+					graphs.put(res, prg);
 				}
-				prg.addOperator(new ResourceOperator( ro.type, res, ro.change.makeOnlyDurationDependent(state)), a);
+				prg.addOperator(new ResourceOperator(ro.type, res, ro.change
+						.makeOnlyDurationDependent(state)), a);
 			}
 
 		}
-
 
 		Iterator git = graphs.keySet().iterator();
 
 		while (git.hasNext())
 		{
 			NamedFunction nf = (NamedFunction) git.next();
-			PrecedenceResourceGraph prg = (PrecedenceResourceGraph) graphs.get(nf);
-			prg.addOperator(new ResourceOperator(MetricSymbolStore.INCREASE, nf, new NumberFunction(nf.getValue(problem.getTemporalMetricInitialState()))), stn.START);
+			PrecedenceResourceGraph prg = (PrecedenceResourceGraph) graphs
+					.get(nf);
+			prg.addOperator(new ResourceOperator(MetricSymbolStore.INCREASE,
+					nf, new NumberFunction(nf.getValue(problem
+							.getTemporalMetricInitialState()))), stn.START);
 			boolean changesMade = true;
 			while (changesMade)
 			{
@@ -149,16 +165,19 @@ public class JavaFFScheduler implements Scheduler
 				changesMade = prg.limitBounds();
 				stn.constrain();
 			}
-			
+
 		}
 
-		
-		Metric m = problem.metric;
-		if (m != null && m.func instanceof NamedFunction && !(m.func instanceof TotalTimeFunction))
+		Metric m = problem.getMetric();
+		if (m != null && m.func instanceof NamedFunction
+				&& !(m.func instanceof TotalTimeFunction))
 		{
-			PrecedenceResourceGraph prg = (PrecedenceResourceGraph) graphs.get((NamedFunction) m.func);
-			if (m.type == Metric.MAXIMIZE) prg.maximize();
-			else if (m.type == Metric.MINIMIZE) prg.minimize();
+			PrecedenceResourceGraph prg = (PrecedenceResourceGraph) graphs
+					.get(m.func);
+			if (m.type == MetricType.Maximize)
+				prg.maximize();
+			else if (m.type == MetricType.Minimize)
+				prg.minimize();
 		}
 
 		stn.constrain();
@@ -166,11 +185,10 @@ public class JavaFFScheduler implements Scheduler
 		stn.minimizeTime();
 		stn.minimizeDuration();
 		stn.constrain();
-		
+
 		TimeStampedPlan p = stn.getTimes();
 
 		return p;
 	}
-
 
 }

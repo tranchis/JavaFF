@@ -26,16 +26,49 @@
  * 
  ************************************************************************/
 
-package javaff.data;
+package javaff.data.metric;
 
-import javaff.planning.State;
-import java.util.Set;
-import java.util.Map;
+import javaff.data.PDDLPrintable;
 
-public interface GroundCondition extends Condition
+import java.io.PrintStream;
+
+public class Metric implements PDDLPrintable
 {
-	public boolean isTrue(State s); // returns whether this conditions is true is State S
-	public Set getConditionalPropositions();
-	public Set getComparators();
-	public GroundCondition staticifyCondition(Map fValues);
+	public MetricType type;
+	public Function func;
+
+	public Metric(MetricType t, Function f)
+	{
+		type = t;
+		func = f;
+	}
+
+	public void PDDLPrint(PrintStream p, int indent)
+	{
+		p.print("(:metric ");
+		p.print(toString());
+		p.print(")");
+	}
+
+	public String toString()
+	{
+		String str = "";
+		if (type == MetricType.Maximize)
+			str += "maximize ";
+		else if (type == MetricType.Minimize)
+			str += "minimize ";
+		str += func.toString();
+		return str;
+	}
+
+	public String toStringTyped()
+	{
+		String str = "";
+		if (type == MetricType.Maximize)
+			str += "maximize ";
+		else if (type == MetricType.Minimize)
+			str += "minimize ";
+		str += func.toStringTyped();
+		return str;
+	}
 }

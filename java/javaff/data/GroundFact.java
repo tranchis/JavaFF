@@ -28,9 +28,32 @@
 
 package javaff.data;
 
+import javaff.data.metric.NamedFunction;
+import javaff.data.strips.SingleLiteral;
 import javaff.planning.State;
+import java.util.Set;
 
-public interface Effect extends PDDLPrintable
+public interface GroundFact extends Cloneable, Fact
 {
+	//old GroundCondition
+	public boolean isTrue(State s); // returns whether this conditions is true
+									// is State S
+	
+	public Set<Fact> getFacts();
 
+	public Set<NamedFunction> getComparators();
+
+	public GroundFact staticify();
+	
+	public Object clone();
+
+	public void apply(State s); // carry out the effects of this on State s
+
+	public void applyAdds(State s);
+
+	public void applyDels(State s);
+	
+	public Set getOperators();
+
+//	public GroundFact staticifyEffect(Map fValues);
 }

@@ -28,7 +28,10 @@
 
 package javaff.data;
 
+import javaff.data.metric.NamedFunction;
+import javaff.data.strips.Not;
 import javaff.data.strips.OperatorName;
+import javaff.data.strips.Proposition;
 import javaff.planning.State;
 
 import java.util.Set;
@@ -40,43 +43,138 @@ import java.math.BigDecimal;
 
 public abstract class Action
 {
-    public OperatorName name;
-    public List params = new ArrayList(); // List of PDDLObjects
+	private OperatorName name;
+	private List<Parameter> parameters; // List of PDDLObjects
 
-	public BigDecimal cost = new BigDecimal(0);
+	private BigDecimal cost;
 
-    public String toString()
-    {
+	
+	public Action()
+	{
+		this.name = new OperatorName("");
+		this.parameters = new ArrayList<Parameter>(); // List of PDDLObjects
+		this.cost = BigDecimal.ONE;
+	}
+	
+	public Action(String name)
+	{
+		this.name = new OperatorName(name);
+		this.parameters = new ArrayList<Parameter>(); // List of PDDLObjects
+		this.cost = BigDecimal.ONE;
+	}
+
+	public String toString()
+	{
 		String stringrep = name.toString();
-		Iterator i = params.iterator();
+		Iterator<Parameter> i = parameters.iterator();
 		while (i.hasNext())
 		{
-			stringrep = stringrep + " " +  i.next();
+			stringrep = stringrep + " " + i.next();
 		}
 		return stringrep;
-    }
+	}
 
 	public abstract boolean isApplicable(State s);
-	public abstract void apply(State s);
-	public abstract Set getConditionalPropositions();
-	public abstract Set getAddPropositions();
-	public abstract Set getDeletePropositions();
-	public abstract Set getComparators();
-	public abstract Set getOperators();
-	public abstract void staticify(Map fValues);
 
+	public abstract void apply(State s);
+
+	public abstract Set<Fact> getPreconditions();
+	
+	public abstract Set<Fact> getAddPropositions();
+
+	public abstract Set<Not> getDeletePropositions();
+
+	public abstract Set<NamedFunction> getComparators();
+
+	public abstract Set getOperators();
+
+	public abstract void staticify(Map fValues);
+	
+//	/**
+//	 * Does this action delete this fact. If the fact is itself a Not, the action is tested to see
+//	 * if the parameter is contained within the delete effects themselves, otherwise, the literal
+//	 * is tested to see if it is embedded within a delete (Not) effect.
+//	 * @param f
+//	 * @return
+//	 */
+	public boolean deletes(Fact f)
+	{
+//		if (f instanceof Not) //FIXME this will break EHC with negated goals
+//			return this.getDeletePropositions().contains(f);
+		
+		for (Not n : this.getDeletePropositions())
+		{
+			if (n.literal.equals(f))
+			{
+				return true;
+			}	
+		}
+		
+		return false;
+	}
+	
+	public boolean adds(Fact f)
+	{
+		return this.getAddPropositions().contains(f);
+	}
+
+	public boolean requires(Fact f)
+	{
+		return this.getPreconditions().contains(f);
+//		for (Fact pc : this.getPreconditions())
+//		{
+//			if (pc instanceof Not)
+//			{
+//				
+//			}
+//		}
+	}
+	
 	public boolean equals(Object obj)
-    {
+	{
 		if (obj instanceof Action)
 		{
 			Action a = (Action) obj;
-			return (name.equals(a.name) && params.equals(a.params));
-		}
-		else return false;
-    }
+			return (name.equals(a.name) && parameters.equals(a.parameters));
+		} 
+		else
+			return false;
+	}
 
-    public int hashCode()
-    {
-        return name.hashCode() ^ params.hashCode();
-    }
+	public int hashCode()
+	{
+		return name.hashCode() ^ parameters.hashCode();
+	}
+	
+	public abstract Object clone();
+
+	public List<Parameter> getParameters()
+	{
+		return parameters;
+	}
+
+	public void setParameters(List<Parameter> parameters)
+	{
+		this.parameters = parameters;
+	}
+
+	public OperatorName getName()
+	{
+		return name;
+	}
+
+	public void setName(OperatorName name)
+	{
+		this.name = name;
+	}
+
+	public BigDecimal getCost()
+	{
+		return cost;
+	}
+
+	public void setCost(BigDecimal cost)
+	{
+		this.cost = cost;
+	}
 }

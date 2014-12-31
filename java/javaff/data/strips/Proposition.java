@@ -28,41 +28,83 @@
 
 package javaff.data.strips;
 
+import javaff.data.Fact;
+import javaff.data.GroundFact;
 
-import javaff.data.GroundCondition;
-import javaff.data.GroundEffect;
+import javaff.data.Literal;
 import javaff.planning.State;
 import javaff.planning.STRIPSState;
+
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Map;
 
-public class Proposition extends javaff.data.Literal implements GroundCondition, GroundEffect
+public class Proposition extends javaff.data.Literal implements GroundFact, SingleLiteral, STRIPSFact
 {
 	public Proposition(PredicateSymbol p)
-    {
+	{
+		super();
 		name = p;
-    }
+		
+		this.updateHash();
+	}
 	
-	public boolean isTrue(State s) // returns whether this conditions is true is State S
-    {
+	protected Proposition()
+	{
+		name = new PredicateSymbol();
+		
+		this.updateHash();
+	}
+	
+	@Override
+	protected int updateHash()
+	{
+		this.hash = super.updateHash() ^ 11;
+		return this.hash;
+	}
+	
+	@Override
+	public Set<Fact> getFacts()
+	{
+		Set<Fact> s = new HashSet<Fact>(1);
+		s.add(this);
+		return s;
+	}
+	
+	public Object clone()
+	{
+		Proposition p = new Proposition(this.name);
+		p.parameters = new ArrayList(this.parameters);
+		
+		p.updateHash();
+		
+		return p;
+	}
+
+	public boolean isTrue(State s) // returns whether this conditions is true
+									// is State S
+	{
 		STRIPSState ss = (STRIPSState) s;
-		return ss.isTrue(this);
+		boolean t = ss.isTrue(this);
+		return t;
 	}
 
 	public void apply(State s) // carry out the effects of this on State s
 	{
-		STRIPSState ss = (STRIPSState) s;
-		ss.addProposition(this);
+		applyDels(s);
+		applyAdds(s);
 	}
 
 	public void applyAdds(State s)
-    {
-		apply(s);
+	{
+		STRIPSState ss = (STRIPSState) s;
+		ss.addFact(this);
 	}
 
 	public void applyDels(State s)
-    {
+	{
+		STRIPSState ss = (STRIPSState) s;
+		ss.removeFact(new Not(this)); //TODO hack for removing negated version of propositions
 	}
 
 	public boolean isStatic()
@@ -70,52 +112,34 @@ public class Proposition extends javaff.data.Literal implements GroundCondition,
 		return name.isStatic();
 	}
 
-	public Set getDeletePropositions()
-    {
-		return new HashSet();
+	public GroundFact staticify()
+	{
+		if (isStatic())
+			return TrueCondition.getInstance();
+		else
+			return this;
 	}
 
-	public Set getAddPropositions()
-    {
-		Set rSet = new HashSet();
-		rSet.add(this);
-		return rSet;
+	public Set getOperators()
+	{
+		return super.EmptySet;
 	}
 
-	public GroundCondition staticifyCondition(Map fValues)
-    {
-		if (isStatic()) return TrueCondition.getInstance();
-    else return this;
-    }
-
-	public GroundEffect staticifyEffect(Map fValues)
-    {
-		return this;
+	public Set getComparators()
+	{
+		return super.EmptySet;
 	}
-
-
-	public Set getConditionalPropositions()
-    {
-		Set rSet = new HashSet();
-		rSet.add(this);
-		return rSet;
-	}
-
-  public Set getOperators()
-  {
-  	return new HashSet();
-  }
-
-  public Set getComparators()
-  {
-  	return new HashSet();
-  }
-
-	public int hashCode()
-    {
-		int hash = 6;
-		hash = 31 * hash ^ name.hashCode();
-		hash = 31 * hash ^ parameters.hashCode();
-		return hash;
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+//		return this.toString().equals(obj.toString());
+		if (obj instanceof Proposition)
+		{
+			Proposition p = (Proposition) obj;
+			return (name.equals(p.name) && parameters.equals(p.parameters));
+		} 
+		else
+			return false;
 	}
 }

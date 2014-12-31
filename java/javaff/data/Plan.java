@@ -28,13 +28,17 @@
 
 package javaff.data;
 
-import java.util.Set;
+import java.util.List;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 
 public interface Plan extends Cloneable
 {
 	public abstract void print(PrintStream p);
+
 	public abstract void print(PrintWriter p);
-	public abstract Set getActions();
+
+	public abstract List<Action> getActions();
+	
+	public abstract int length();
 }

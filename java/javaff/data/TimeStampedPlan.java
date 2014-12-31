@@ -28,6 +28,10 @@
 
 package javaff.data;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.SortedSet;
@@ -37,24 +41,79 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 
+import javax.rmi.CORBA.Tie;
+
 public class TimeStampedPlan implements Plan
 {
-	public SortedSet actions = new TreeSet();
-
-	public void addAction(Action a, BigDecimal t)
+	public TreeSet<TimeStampedAction> actions;
+	
+	public TimeStampedPlan()
 	{
-		addAction(a, t, null);
+		this.actions = new TreeSet<TimeStampedAction>();
+//		this.actions = new TreeSet<TimeStampedAction>(new TimestampedActionComparator());
+	}
+	
+	public TimeStampedPlan(Collection<TimeStampedAction> actions)
+	{
+		this.actions = new TreeSet<TimeStampedAction>(actions);
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		return this.actions.equals(((TimeStampedPlan)obj).actions);
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return this.actions.hashCode();
+	}
+	
+	public Object clone()
+	{
+		return new TimeStampedPlan((Collection<TimeStampedAction>) this.actions.clone());
+	}
+	
+	public int length()
+	{
+		return this.actions.size();
 	}
 
-	public void addAction(Action a, BigDecimal t, BigDecimal d)
+	public void addAction(TimeStampedAction a)
 	{
-		actions.add(new TimeStampedAction(a,t,d));
+		this.actions.add(a);
+	}	
+	
+	public TimeStampedAction addAction(Action a, BigDecimal t)
+	{
+		return this.addAction(a, t, null);
 	}
 
+	public TimeStampedAction addAction(Action a, BigDecimal t, BigDecimal d)
+	{
+		TimeStampedAction tsa = new TimeStampedAction(a, t, d);
+		actions.add(tsa);
 		
+		return tsa;
+	}
+	
+	@Override
+	public String toString()
+	{
+		StringBuffer buf = new StringBuffer();
+		for (TimeStampedAction a : actions)
+		{
+			buf.append(a.toString()+"\n");
+		}
+		buf.deleteCharAt(buf.length()-1);
+		
+		return buf.toString();
+	}
+
 	public void print(PrintStream p)
 	{
-		Iterator ait = actions.iterator();
+		Iterator<TimeStampedAction> ait = actions.iterator();
 		while (ait.hasNext())
 		{
 			TimeStampedAction a = (TimeStampedAction) ait.next();
@@ -64,7 +123,7 @@ public class TimeStampedPlan implements Plan
 
 	public void print(PrintWriter p)
 	{
-		Iterator ait = actions.iterator();
+		Iterator<TimeStampedAction> ait = actions.iterator();
 		while (ait.hasNext())
 		{
 			TimeStampedAction a = (TimeStampedAction) ait.next();
@@ -72,15 +131,49 @@ public class TimeStampedPlan implements Plan
 		}
 	}
 	
-	public Set getActions()
+	public SortedSet<TimeStampedAction> getSortedActions()
 	{
-		Set s = new HashSet();
-		Iterator ait = actions.iterator();
-		while (ait.hasNext())
+		return this.actions;
+	}
+
+	@Override
+	public List<Action> getActions()
+	{
+		ArrayList<Action> s = new ArrayList<Action>();
+		for (Action a : this.actions)
 		{
-			TimeStampedAction a = (TimeStampedAction) ait.next();
-			s.add(a.action);
+			s.add(a);
 		}
 		return s;
-	}	
+	}
+	
+//	public class TimestampedActionComparator implements Comparator<TimeStampedAction>
+//	{
+//		public int compare(TimeStampedAction a, TimeStampedAction b)
+//		{
+//			if (a.getTime().compareTo(b.getTime()) < 0)
+//				return -1;
+//			else if (a.getTime().compareTo(b.getTime()) > 0)
+//				return 1;
+//			else
+//			{
+//				int hashA = a.hashCode();
+//				int hashB = b.hashCode();
+//				if (hashA < hashB)
+//					return -1;
+//				else if (hashA > hashB)
+//					return 1;
+//				else
+//				{
+//					//this is the tricky one. What if an unscheduled plan has the same action
+//					//appear twice, at different times, but the scheduled tries to add them at the
+//					//same timestep? In this case the latter action would be ignored/overwritten
+//					//because they are absolutely identical. This is why we use
+//					//tiny epsilonAccuracy values on each timestamp. So that action A will never equal
+//					//action B's time. Eg, t(A) = 1.0001, t(B) = 1.0002.
+//					return 0;
+//				}
+//			}
+//		}
+//	}
 }

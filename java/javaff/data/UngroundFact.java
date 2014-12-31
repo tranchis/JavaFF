@@ -31,9 +31,19 @@ package javaff.data;
 import java.util.Map;
 import java.util.Set;
 
-public interface UngroundCondition extends Condition
+import javaff.data.strips.PDDLObject;
+import javaff.data.strips.PredicateSymbol;
+import javaff.data.strips.Variable;
+
+public interface UngroundFact extends Fact
 {
-	public GroundCondition groundCondition(Map varMap);
-	public Set getStaticPredicates();
-	public UngroundCondition minus(UngroundEffect effect);
+	public GroundFact ground(Map<Variable, PDDLObject> varMap);
+
+	public Set<Fact> getStaticPredicates();
+
+	public UngroundFact minus(UngroundFact effect);
+	
+	public boolean effects(PredicateSymbol ps);
+
+	public UngroundFact effectsAdd(UngroundFact cond);
 }

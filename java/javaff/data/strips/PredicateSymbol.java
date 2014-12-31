@@ -30,6 +30,8 @@ package javaff.data.strips;
 
 import javaff.data.PDDLPrinter;
 import javaff.data.PDDLPrintable;
+import javaff.data.Parameter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
@@ -37,19 +39,40 @@ import java.io.PrintStream;
 
 public class PredicateSymbol implements PDDLPrintable
 {
+	public String getName()
+	{
+		return name;
+	}
+
+	public List<Parameter> getParameters()
+	{
+		return params;
+	}
+
 	protected String name;
 	protected boolean staticValue;
 
-	protected List params = new ArrayList(); //The parameters (types) that this predicate symbol takes
+	protected List<Parameter> params = new ArrayList<Parameter>(); // The parameters (types) that
+												// this predicate symbol takes
 
 	protected PredicateSymbol()
 	{
-		
+		name = "";
 	}
 
 	public PredicateSymbol(String pName)
 	{
 		name = pName;
+	}
+	
+	public Object clone()
+	{
+		PredicateSymbol clone = new PredicateSymbol();
+		clone.name = this.name;
+		clone.params = new ArrayList<Parameter>(this.params);
+		clone.staticValue = this.staticValue;
+		
+		return clone;
 	}
 
 	public String toString()
@@ -60,7 +83,7 @@ public class PredicateSymbol implements PDDLPrintable
 	public String toStringTyped()
 	{
 		String str = name;
-		Iterator it = params.iterator();
+		Iterator<Parameter> it = params.iterator();
 		while (it.hasNext())
 		{
 			Variable v = (Variable) it.next();
@@ -89,9 +112,9 @@ public class PredicateSymbol implements PDDLPrintable
 		if (obj instanceof PredicateSymbol)
 		{
 			PredicateSymbol ps = (PredicateSymbol) obj;
-			return (name.equals(ps.name) && params.equals(ps.params));
-		}
-		else return false;
+			return (name.equalsIgnoreCase(ps.name) && params.equals(ps.params));
+		} else
+			return false;
 	}
 
 	public int hashCode()

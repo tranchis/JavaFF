@@ -26,21 +26,19 @@
  * 
  ************************************************************************/
 
-
 package javaff.search;
 
+import javaff.planning.Filter;
 import javaff.planning.State;
 
 import java.util.Comparator;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Hashtable;
 
 public abstract class Search
 {
 	protected State start;
 	protected int nodeCount = 0;
 	protected Comparator comp;
+	protected Filter filter = null;
 
 	public Search(State s)
 	{
@@ -58,7 +56,17 @@ public abstract class Search
 	}
 
 	public abstract State search();
+
+	public Filter getFilter()
+	{
+		return filter;
+	}
+
+	public void setFilter(Filter filter)
+	{
+		this.filter = filter;
+	}
+	
 	
 
 }
-
